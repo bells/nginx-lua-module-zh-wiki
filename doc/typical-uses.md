@@ -3,19 +3,23 @@
 
 列举部分：
 
-* 在lua中混合处理不同nginx模块输出（proxy, drizzle, postgres, redis, memcached等）
-* 在请求真正到达上游服务之前，lua中处理复杂的准入控制和安全检查
-* 比较随意的控制应答头（通过Lua）
-* 从外部存储中获取后端信息，并用这些信息来实时选择哪一个后端来完成业务访问
-* 在内容handler中随意编写复杂的web应用，同步编写异步访问后端数据库和其他存储
-* 在rewrite阶段，通过Lua完成非常复杂的处理
-* 在Nginx子查询、location调用中，通过Lua实现高级缓存机制
+* 在 Lua 中揉和和处理各种不同的 NGINX 上游输出（proxy, drizzle, postgres, redis, memcached等）
+* 在请求真正到达上游服务之前，Lua 可以随心所欲的做复杂的访问控制和安全检测
+* 随心所欲的操控响应头里面的信息（通过 Lua）
+* 从外部存储服务（比如 redis, memcached, mysql, postgresql）中获取后端信息，并用这些信息来实时选择哪一个后端来完成业务访问
+* 在内容 handler 中随意编写复杂的 web 应用，使用同步但依然非阻塞的方式，访问后端数据库和其他存储
+* 在 rewrite 阶段，通过 Lua 完成非常复杂的 URL dispatch
+* 用 Lua 可以为 NGINX 子请求和任意location，实现高级缓存机制
 
-对外暴露强劲的Lua语言，允许使用各种Nginx模块，自由拼合没有任何限制。该模块的脚本有充分的灵活性，同时提供的性能水平与本地C语言程序无论是在CPU时间方面以及内存占用差距非常小。所有这些都要求LuaJIT 2.x是启用的。
+本模块会把你带入一个拥有无限可能的服务端开发新世界，你可以把 NGINX 的各种功能进行自由拼接，
+更重要的是，开发门槛并不高，这一切都是用强大轻巧的 Lua 语言来操控。
 
-其他脚本语言实现通常很难满足这一性能水平。
+本模块的脚本有充分的灵活性，并且性能和原生 C 语言编程相比毫不逊色，无论是 CPU 时间还是内存占用方面。
+当然这个需要你使用 LuaJIT 2.x。
 
-Lua state（Lua VM instance）会被共享给单个nginx worker内所有的请求，从而达到最小化内存消耗。
+其他脚本语言的实现通常很难达到类似性能。
+
+Lua state（Lua VM instance）会被共享给单个 nginx worker 内所有的请求，从而达到最小化内存消耗。
 
 [返回目录](#table-of-contents)
 

@@ -2,7 +2,7 @@ ngx.location.capture
 --------------------
 **语法:** *res = ngx.location.capture(uri, options?)*
 
-**环境:** *rewrite_by_lua*\**, access_by_lua*\**, content_by_lua*\*
+**环境:** *rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;*
 
 向 `uri` 发起一个同步非阻塞 *Nginx 子请求*。
 
@@ -10,9 +10,11 @@ Nginx 子请求是一种非常强有力的方式，它可以发起非阻塞的�
 
 需要注意的是，子请求只是模拟 HTTP 接口的形式， *没有* 额外的 HTTP/TCP 流量，也 *没有* IPC (进程间通信) 调用。所有工作在内部高效地在 C 语言级别完成。
 
-子请求与 HTTP 301/302 重定向指令 (通过 [ngx.redirect](#ngxredirect)) 完全不同，也与内部重定向 ((通过 [ngx.exec](#ngxexec)) 完全不同。
+子请求与 HTTP 301/302 重定向指令 (通过 [ngx.redirect](#ngxredirect)) 完全不同，也与内部重定向 (通过 [ngx.exec](#ngxexec)) 完全不同。
 
-在发起子请求前，用户程序需要读取完整的 HTTP 请求体 (通过调用 [ngx.req.read_body](#ngxreqread_body) 或设置 [lua_need_request_body](#lua_need_request_body) 指令为 on).
+在发起子请求前，用户程序应总是读取完整的 HTTP 请求体 (通过调用 [ngx.req.read_body](#ngxreqread_body) 或设置 [lua_need_request_body](#lua_need_request_body) 指令为 on).
+
+该 API 方法（[ngx.location.capture_multi](#ngxlocationcapture_multi) 也一样）总是缓冲整个请求体到内存中。因此，当需要处理一个大的子请求响应，用户程序应使用 [cosockets](#ngxsockettcp) 进行流式处理，
 
 下面是一个简单例子：
 
@@ -250,7 +252,7 @@ URI 请求串可以与 URI 本身连在一起，例如，
     bar
 
 
-请注意，通过 [ngx.location.capture](#ngxlocationcapture) 创建的子请求默认继承当前请求的所有请求头信息，这有可能导致子请求响应中不可预测的副作用。例如，当使用标准的 `ngx_proxy` 模块服务子请求时，如果主请求头中包含 "Accept-Encoding: gzip"，可能导致子请求返回 Lua 代码无法正确处理的 gzip 压缩过的结果。通过设置 [proxy_pass_request_headers](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass_request_headers) 为 `off` ，在子查询 location 中忽略原始请求头。
+请注意，通过 [ngx.location.capture](#ngxlocationcapture) 创建的子请求默认继承当前请求的所有请求头信息，这有可能导致子请求响应中不可预测的副作用。例如，当使用标准的 `ngx_proxy` 模块服务子请求时，如果主请求头中包含 "Accept-Encoding: gzip"，可能导致子请求返回 Lua 代码无法正确处理的 gzip 压缩过的结果。通过设置 [proxy_pass_request_headers](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass_request_headers) 为 `off` ，在子请求 location 中忽略原始请求头。
 
 当没有设置 `body` 选项，且 `always_forward_body` 选项为 false (默认值) 时，`POST` 和 `PUT` 子请求将继承父请求的请求体 (如果有的话)。
 
@@ -270,9 +272,9 @@ Nginx 代码中有一个硬编码的数字，来控制每个主请求最多可�
 
 **syntax:** *res = ngx.location.capture(uri, options?)*
 
-**context:** *rewrite_by_lua*\**, access_by_lua*\**, content_by_lua*\*
+**context:** *rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;*
 
-Issue a synchronous but still non-blocking *Nginx Subrequest* using `uri`.
+Issues a synchronous but still non-blocking *Nginx Subrequest* using `uri`.
 
 Nginx's subrequests provide a powerful way to make non-blocking internal requests to other locations configured with disk file directory or *any* other nginx C modules like `ngx_proxy`, `ngx_fastcgi`, `ngx_memc`,
 `ngx_postgres`, `ngx_drizzle`, and even ngx_lua itself and etc etc etc.
@@ -283,6 +285,9 @@ Subrequests are completely different from HTTP 301/302 redirection (via [ngx.red
 
 You should always read the request body (by either calling [ngx.req.read_body](#ngxreqread_body) or configuring [lua_need_request_body](#lua_need_request_body) on) before initiating a subrequest.
 
+This API function (as well as [ngx.location.capture_multi](#ngxlocationcapture_multi)) always buffers the whole response body of the subrequest in memory. Thus, you should use [cosockets](#ngxsockettcp)
+and streaming processing instead if you have to handle large subrequest responses.
+
 Here is a basic example:
 
 ```lua
@@ -290,7 +295,7 @@ Here is a basic example:
  res = ngx.location.capture(uri)
 ```
 
-Returns a Lua table with three slots (`res.status`, `res.header`, `res.body`, and `res.truncated`).
+Returns a Lua table with 4 slots: `res.status`, `res.header`, `res.body`, and `res.truncated`.
 
 `res.status` holds the response status code for the subrequest response.
 
